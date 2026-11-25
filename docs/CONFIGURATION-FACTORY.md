@@ -1,47 +1,56 @@
-# Configuration de GitHub Factory
+# Configuration de GITHUB FACTORY
 
-Cette version ajoute une première fonction serveur pour créer un dépôt GitHub, y déposer une page de départ, puis demander à Netlify de créer un projet relié au dépôt.
+Cette version comprend une fonction serveur qui crée un dépôt GitHub privé, y ajoute une page de départ, puis demande à Netlify de créer un projet relié au dépôt. Une console web est disponible dans `/factory.html`.
 
 ## Variables d'environnement Netlify
 
-Dans **Project configuration → Environment variables**, ajouter ces variables comme secrets (ne jamais les mettre dans Git) :
+Dans **Project configuration → Environment variables**, ajouter ces variables comme secrets avec le scope **Functions** (ne jamais les mettre dans Git) :
 
 - `FACTORY_ADMIN_KEY` : longue clé aléatoire utilisée pour protéger l'endpoint.
-- `GITHUB_TOKEN` : jeton GitHub autorisé à créer des dépôts pour le compte.
-- `GITHUB_OWNER` : identifiant du compte GitHub propriétaire (ex. le nom du compte, sans URL).
-- `NETLIFY_TOKEN` : jeton d'accès personnel Netlify.
-- `NETLIFY_ACCOUNT_SLUG` : identifiant de l'équipe Netlify qui doit héberger les nouveaux projets (pour l'équipe actuelle : `alexyredminote`).
-- `NETLIFY_GITHUB_INSTALLATION_ID` : identifiant numérique (entier positif) de l'installation de l'application Netlify GitHub pour le compte. Il se trouve dans l'URL de la page de l'installation GitHub.
+- `GITHUB_TOKEN` : jeton GitHub autorisé à créer des dépôts et à y écrire.
+- `GITHUB_OWNER` : identifiant du compte GitHub propriétaire (sans URL).
+- `NETLIFY_TOKEN` : jeton d'accès Netlify.
+- `NETLIFY_ACCOUNT_SLUG` : identifiant de l'équipe Netlify qui hébergera les nouveaux projets (équipe actuelle : `alexyredminote`).
+- `NETLIFY_GITHUB_INSTALLATION_ID` : identifiant numérique positif de l'installation de l'application Netlify GitHub.
 
-Le jeton GitHub doit disposer des droits nécessaires à la création de dépôts et à l'écriture dans le dépôt. Le jeton Netlify doit pouvoir créer des projets dans l'équipe choisie. La Factory utilise la route de création d'un projet dans l'équipe `NETLIFY_ACCOUNT_SLUG`, et non la route de création dans l'espace personnel par défaut.
+Le jeton GitHub doit disposer des droits nécessaires à la création de dépôts et à l'écriture dans les dépôts. Le jeton Netlify doit pouvoir créer des projets dans l'équipe choisie.
 
 ## Connexion GitHub ↔ Netlify
 
 L'application Netlify GitHub doit être installée sur le compte GitHub et autorisée à accéder aux nouveaux dépôts créés par la Factory. L'identifiant d'installation doit correspondre à cette installation. Sans cette autorisation, la fonction peut créer le dépôt mais Netlify peut refuser de le relier.
 
+## Console web
+
+Après déploiement, ouvrir :
+
+`https://gf2027.netlify.app/factory.html`
+
+1. Saisir la clé `FACTORY_ADMIN_KEY` dans le champ de la console.
+2. Cliquer sur **Vérifier la configuration**. Cette action n'effectue aucune création.
+3. Si les six variables sont présentes, les autorisations doivent encore être testées avec une création réelle autorisée.
+4. Pour créer un site, choisir un nom et cliquer sur **Créer le dépôt + site Netlify**. La console demande une confirmation avant l'action.
+
+La console ne stocke pas la clé dans `localStorage`, `sessionStorage` ou un cookie. Elle reste dans le champ de la page et est transmise à la fonction via HTTPS. Effacer le champ en quittant la console. Ne jamais saisir les jetons GitHub ou Netlify dans cette page : ils doivent rester dans Netlify.
+
 ## Vérifier la configuration sans créer de projet
 
-Après avoir ajouté les variables, envoyer une requête POST au même endpoint avec l'en-tête d'authentification ci-dessus et ce corps :
+La console envoie une requête POST au même endpoint avec le corps :
 
 ```json
-{
-  "action": "status"
-}
+{ "action": "status" }
 ```
 
 Cette vérification renvoie uniquement l'état présent/manquant des variables et ne crée aucun dépôt ni projet. Elle ne vérifie pas encore que les jetons disposent réellement des autorisations nécessaires.
 
-L'endpoint est limité à 5 requêtes par minute et par adresse IP pour réduire les abus. Une limite dépassée renvoie une réponse HTTP 429.
+L'endpoint est limité à 5 requêtes par minute et par adresse IP. Une limite dépassée renvoie une réponse HTTP 429.
 
-## Appel de test
+## Appel direct (alternative à la console)
 
-Après déploiement de ce dépôt sur Netlify, envoyer une requête POST à :
+Endpoint :
 
-`https://NOM-DU-PROJET.netlify.app/.netlify/functions/factory-create-site`
+`https://gf2027.netlify.app/.netlify/functions/factory-create-site`
 
-En-tête :
-
-`Authorization: Bearer VOTRE_CLE_FACTORY`
+En-tête : `Authorization: Bearer VOTRE_CLE_FACTORY`
 
 Corps JSON :
 
@@ -53,16 +62,17 @@ Corps JSON :
 }
 ```
 
-La visibilité est privée par défaut. Pour créer un dépôt public, passer explicitement `"private": false`.
+La visibilité est privée par défaut. La console ne permet volontairement pas de créer un dépôt public.
 
 ## État et limites
 
-- Cette fonction est une première version technique, pas encore un assistant autonome.
-- Elle ne supprime jamais un dépôt ou un projet en cas d'échec partiel : elle renvoie les liens pour permettre une vérification manuelle.
-- Il faut configurer les variables secrètes dans Netlify avant de pouvoir l'utiliser. La Factory exige désormais six variables : `FACTORY_ADMIN_KEY`, `GITHUB_TOKEN`, `GITHUB_OWNER`, `NETLIFY_TOKEN`, `NETLIFY_ACCOUNT_SLUG` et `NETLIFY_GITHUB_INSTALLATION_ID`.
+- La fonction et la console sont déployées, mais le parcours complet de création n'a pas encore été testé.
+- La fonction ne supprime jamais un dépôt ou un projet en cas d'échec partiel : elle renvoie les liens pour permettre une vérification manuelle.
+- Les six variables secrètes doivent être ajoutées dans Netlify avant utilisation.
+- La présence des variables ne prouve pas que les jetons possèdent les autorisations requises.
 - Les quotas et limites gratuites de GitHub et Netlify s'appliquent.
 - Ne jamais envoyer les jetons ou la clé d'administration dans une conversation, un fichier du dépôt ou une capture d'écran.
 
 ## Sécurité
 
-L'endpoint exige une clé d'administration, refuse les méthodes autres que POST et n'expose jamais les jetons dans ses réponses. Pour un usage réel, ajouter ensuite une interface d'administration protégée et une journalisation sans secrets.
+L'endpoint exige une clé d'administration, refuse les méthodes autres que POST, limite les requêtes et n'expose jamais les jetons dans ses réponses. La console n'enregistre pas la clé. Les secrets doivent être configurés uniquement dans les paramètres sécurisés Netlify avec le scope Functions.
