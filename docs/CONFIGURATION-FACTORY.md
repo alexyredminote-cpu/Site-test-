@@ -10,13 +10,26 @@ Dans **Project configuration → Environment variables**, ajouter ces variables 
 - `GITHUB_TOKEN` : jeton GitHub autorisé à créer des dépôts pour le compte.
 - `GITHUB_OWNER` : identifiant du compte GitHub propriétaire (ex. le nom du compte, sans URL).
 - `NETLIFY_TOKEN` : jeton d'accès personnel Netlify.
+- `NETLIFY_ACCOUNT_SLUG` : identifiant de l'équipe Netlify qui doit héberger les nouveaux projets (pour l'équipe actuelle : `alexyredminote`).
 - `NETLIFY_GITHUB_INSTALLATION_ID` : identifiant numérique (entier positif) de l'installation de l'application Netlify GitHub pour le compte. Il se trouve dans l'URL de la page de l'installation GitHub.
 
-Le jeton GitHub doit disposer des droits nécessaires à la création de dépôts et à l'écriture dans le dépôt. Le jeton Netlify doit pouvoir créer des projets dans l'équipe choisie.
+Le jeton GitHub doit disposer des droits nécessaires à la création de dépôts et à l'écriture dans le dépôt. Le jeton Netlify doit pouvoir créer des projets dans l'équipe choisie. La Factory utilise la route de création d'un projet dans l'équipe `NETLIFY_ACCOUNT_SLUG`, et non la route de création dans l'espace personnel par défaut.
 
 ## Connexion GitHub ↔ Netlify
 
 L'application Netlify GitHub doit être installée sur le compte GitHub et autorisée à accéder aux nouveaux dépôts créés par la Factory. L'identifiant d'installation doit correspondre à cette installation. Sans cette autorisation, la fonction peut créer le dépôt mais Netlify peut refuser de le relier.
+
+## Vérifier la configuration sans créer de projet
+
+Après avoir ajouté les variables, envoyer une requête POST au même endpoint avec l'en-tête d'authentification ci-dessus et ce corps :
+
+```json
+{
+  "action": "status"
+}
+```
+
+Cette vérification renvoie uniquement l'état présent/manquant des variables et ne crée aucun dépôt ni projet. Elle ne vérifie pas encore que les jetons disposent réellement des autorisations nécessaires.
 
 ## Appel de test
 
@@ -44,7 +57,7 @@ La visibilité est privée par défaut. Pour créer un dépôt public, passer ex
 
 - Cette fonction est une première version technique, pas encore un assistant autonome.
 - Elle ne supprime jamais un dépôt ou un projet en cas d'échec partiel : elle renvoie les liens pour permettre une vérification manuelle.
-- Il faut configurer les variables secrètes dans Netlify avant de pouvoir l'utiliser.
+- Il faut configurer les variables secrètes dans Netlify avant de pouvoir l'utiliser. La Factory exige désormais six variables : `FACTORY_ADMIN_KEY`, `GITHUB_TOKEN`, `GITHUB_OWNER`, `NETLIFY_TOKEN`, `NETLIFY_ACCOUNT_SLUG` et `NETLIFY_GITHUB_INSTALLATION_ID`.
 - Les quotas et limites gratuites de GitHub et Netlify s'appliquent.
 - Ne jamais envoyer les jetons ou la clé d'administration dans une conversation, un fichier du dépôt ou une capture d'écran.
 
