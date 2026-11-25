@@ -38,6 +38,11 @@ export default async (req) => {
     return json(503, { error: "Configuration incomplète.", missing });
   }
 
+  const installationId = Number(NETLIFY_GITHUB_INSTALLATION_ID);
+  if (!Number.isSafeInteger(installationId) || installationId <= 0) {
+    return json(503, { error: "NETLIFY_GITHUB_INSTALLATION_ID doit être un identifiant numérique valide." });
+  }
+
   let input;
   try {
     input = await req.json();
@@ -62,6 +67,15 @@ export default async (req) => {
 
   let repo;
   try {
+    const accountResponse = await fetch("https://api.github.com/user", { headers: ghHeaders });
+    const account = await accountResponse.json();
+    if (!accountResponse.ok) {
+      return json(502, { error: "Impossible de vérifier le compte GitHub associé au jeton." });
+    }
+    if (account.login?.toLowerCase() !== GITHUB_OWNER.toLowerCase()) {
+      return json(403, { error: "Le compte GitHub du jeton ne correspond pas à GITHUB_OWNER." });
+    }
+
     const createRepo = await fetch("https://api.github.com/user/repos", {
       method: "POST",
       headers: ghHeaders,
@@ -142,7 +156,7 @@ export default async (req) => {
           cmd: "",
           dir: ".",
           private: visibility === "private",
-          installation_id: NETLIFY_GITHUB_INSTALLATION_ID,
+          installation_id: installationId,
         },
       }),
     });
