@@ -26,28 +26,37 @@ export default async (req) => {
   const GITHUB_TOKEN = Netlify.env.get("GITHUB_TOKEN");
   const GITHUB_OWNER = Netlify.env.get("GITHUB_OWNER");
   const NETLIFY_TOKEN = Netlify.env.get("NETLIFY_TOKEN");
+  const NETLIFY_ACCOUNT_SLUG = Netlify.env.get("NETLIFY_ACCOUNT_SLUG");
   const NETLIFY_GITHUB_INSTALLATION_ID = Netlify.env.get("NETLIFY_GITHUB_INSTALLATION_ID");
-  const missing = [
-    ["GITHUB_TOKEN", GITHUB_TOKEN],
-    ["GITHUB_OWNER", GITHUB_OWNER],
-    ["NETLIFY_TOKEN", NETLIFY_TOKEN],
-    ["NETLIFY_GITHUB_INSTALLATION_ID", NETLIFY_GITHUB_INSTALLATION_ID],
-  ].filter(([, value]) => !value).map(([key]) => key);
-
-  if (missing.length) {
-    return json(503, { error: "Configuration incomplète.", missing });
-  }
-
   const installationId = Number(NETLIFY_GITHUB_INSTALLATION_ID);
-  if (!Number.isSafeInteger(installationId) || installationId <= 0) {
-    return json(503, { error: "NETLIFY_GITHUB_INSTALLATION_ID doit être un identifiant numérique valide." });
-  }
+  const configured = {
+    FACTORY_ADMIN_KEY: Boolean(adminKey),
+    GITHUB_TOKEN: Boolean(GITHUB_TOKEN),
+    GITHUB_OWNER: Boolean(GITHUB_OWNER),
+    NETLIFY_TOKEN: Boolean(NETLIFY_TOKEN),
+    NETLIFY_ACCOUNT_SLUG: Boolean(NETLIFY_ACCOUNT_SLUG),
+    NETLIFY_GITHUB_INSTALLATION_ID: Number.isSafeInteger(installationId) && installationId > 0,
+  };
+  const missing = Object.entries(configured).filter(([, ready]) => !ready).map(([key]) => key);
 
   let input;
   try {
     input = await req.json();
   } catch {
     return json(400, { error: "Le corps doit être un JSON valide." });
+  }
+
+  if (input?.action === "status") {
+    return json(missing.length ? 503 : 200, {
+      status: missing.length ? "configuration_incomplete" : "configuration_present",
+      configured,
+      missing,
+      note: "Les valeurs secrètes ne sont jamais renvoyées. Cette vérification contrôle leur présence et le format de l'identifiant, pas encore leur validité auprès des fournisseurs.",
+    });
+  }
+
+  if (missing.length) {
+    return json(503, { error: "Configuration incomplète.", missing });
   }
 
   const name = String(input.name || "").trim().toLowerCase();
@@ -140,7 +149,7 @@ export default async (req) => {
   }
 
   try {
-    const createSite = await fetch("https://api.netlify.com/api/v1/sites", {
+    const createSite = await fetch(`https://api.netlify.com/api/v1/${encodeURIComponent(NETLIFY_ACCOUNT_SLUG)}/sites/`, {
       method: "POST",
       headers: {
         authorization: `Bearer ${NETLIFY_TOKEN}`,
