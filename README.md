@@ -12,7 +12,7 @@ Tester le parcours **1 site = 1 dépôt GitHub = 1 site Netlify**.
 - [x] Page HTML de démonstration : `index.html`
 - [x] Projet Netlify de test créé : `gf2027`
 - [x] Premier déploiement Netlify confirmé comme prêt
-- [ ] Vérifier qu'un nouveau commit GitHub déclenche un nouveau déploiement Netlify
+- [x] Vérifier qu'un nouveau commit GitHub déclenche un nouveau déploiement Netlify
 - [ ] Concevoir l'automatisation de création des dépôts
 - [ ] Automatiser la création et la liaison des projets Netlify
 - [ ] Ajouter un tableau de bord de gestion
