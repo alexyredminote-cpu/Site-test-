@@ -1,9 +1,8 @@
 import { timingSafeEqual } from "node:crypto";
 
-const json = (statusCode, body) => ({
-  statusCode,
-  headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
-  body: JSON.stringify(body),
+const json = (status, body) => Response.json(body, {
+  status,
+  headers: { "cache-control": "no-store" },
 });
 
 function safeEqual(a, b) {
@@ -18,13 +17,16 @@ export default async (req) => {
     return json(405, { error: "Méthode non autorisée. Utilise POST." });
   }
 
-  const adminKey = process.env.FACTORY_ADMIN_KEY;
-  const suppliedKey = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+  const adminKey = Netlify.env.get("FACTORY_ADMIN_KEY");
+  const suppliedKey = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
   if (!safeEqual(suppliedKey, adminKey)) {
     return json(401, { error: "Authentification refusée." });
   }
 
-  const { GITHUB_TOKEN, GITHUB_OWNER, NETLIFY_TOKEN, NETLIFY_GITHUB_INSTALLATION_ID } = process.env;
+  const GITHUB_TOKEN = Netlify.env.get("GITHUB_TOKEN");
+  const GITHUB_OWNER = Netlify.env.get("GITHUB_OWNER");
+  const NETLIFY_TOKEN = Netlify.env.get("NETLIFY_TOKEN");
+  const NETLIFY_GITHUB_INSTALLATION_ID = Netlify.env.get("NETLIFY_GITHUB_INSTALLATION_ID");
   const missing = [
     ["GITHUB_TOKEN", GITHUB_TOKEN],
     ["GITHUB_OWNER", GITHUB_OWNER],
@@ -38,7 +40,7 @@ export default async (req) => {
 
   let input;
   try {
-    input = JSON.parse(req.body || "{}");
+    input = await req.json();
   } catch {
     return json(400, { error: "Le corps doit être un JSON valide." });
   }
@@ -72,12 +74,17 @@ export default async (req) => {
         detail: payload.message || "Erreur GitHub.",
       });
     }
+    if (payload.owner?.login?.toLowerCase() !== GITHUB_OWNER.toLowerCase()) {
+      return json(502, {
+        error: "Le dépôt a été créé sur un compte inattendu. Vérifie le compte associé au jeton GitHub.",
+        repository: payload.html_url,
+      });
+    }
     repo = payload;
   } catch {
     return json(502, { error: "Impossible de joindre GitHub." });
   }
 
-  // Add a small landing page before connecting the repository to Netlify.
   const page = `<!doctype html>
 <html lang="fr">
 <head>
@@ -94,12 +101,14 @@ export default async (req) => {
 </head>
 <body><main><p>GITHUB FACTORY</p><h1>${name}</h1><p>Ton site est créé et relié à son dépôt GitHub. Tu peux maintenant remplacer cette page par ton vrai projet.</p><p><a href="https://github.com/${repo.full_name}">Voir le dépôt GitHub</a></p></main></body>
 </html>`;
-  const encoded = Buffer.from(page, "utf8").toString("base64");
   try {
     const pushPage = await fetch(`https://api.github.com/repos/${repo.full_name}/contents/index.html`, {
       method: "PUT",
       headers: ghHeaders,
-      body: JSON.stringify({ message: "Add initial site page", content: encoded }),
+      body: JSON.stringify({
+        message: "Add initial site page",
+        content: Buffer.from(page, "utf8").toString("base64"),
+      }),
     });
     if (!pushPage.ok) {
       const detail = await pushPage.json().catch(() => ({}));
