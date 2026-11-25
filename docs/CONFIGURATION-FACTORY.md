@@ -10,7 +10,7 @@ Dans **Project configuration → Environment variables**, ajouter ces variables 
 - `GITHUB_TOKEN` : jeton GitHub autorisé à créer des dépôts pour le compte.
 - `GITHUB_OWNER` : identifiant du compte GitHub propriétaire (ex. le nom du compte, sans URL).
 - `NETLIFY_TOKEN` : jeton d'accès personnel Netlify.
-- `NETLIFY_GITHUB_INSTALLATION_ID` : identifiant d'installation de l'application Netlify GitHub pour le compte.
+- `NETLIFY_GITHUB_INSTALLATION_ID` : identifiant numérique (entier positif) de l'installation de l'application Netlify GitHub pour le compte. Il se trouve dans l'URL de la page de l'installation GitHub.
 
 Le jeton GitHub doit disposer des droits nécessaires à la création de dépôts et à l'écriture dans le dépôt. Le jeton Netlify doit pouvoir créer des projets dans l'équipe choisie.
 
