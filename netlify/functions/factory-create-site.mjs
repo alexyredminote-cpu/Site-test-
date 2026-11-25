@@ -5,6 +5,15 @@ const json = (status, body) => Response.json(body, {
   headers: { "cache-control": "no-store" },
 });
 
+export const config = {
+  path: "/.netlify/functions/factory-create-site",
+  rateLimit: {
+    windowLimit: 5,
+    windowSize: 60,
+    aggregateBy: ["ip"],
+  },
+};
+
 function safeEqual(a, b) {
   if (!a || !b) return false;
   const left = Buffer.from(a);
@@ -46,7 +55,11 @@ export default async (req) => {
     return json(400, { error: "Le corps doit être un JSON valide." });
   }
 
-  if (input?.action === "status") {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return json(400, { error: "Le corps JSON doit être un objet." });
+  }
+
+  if (input.action === "status") {
     return json(missing.length ? 503 : 200, {
       status: missing.length ? "configuration_incomplete" : "configuration_present",
       configured,
