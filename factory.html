@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1220">
+  <meta name="description" content="Panneau de commande sécurisé de GITHUB FACTORY.">
+  <title>Factory Console — GITHUB FACTORY</title>
+  <style>
+    :root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;background:#0b1220;color:#edf4ff}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 15% 0%,#1c3762 0,transparent 42%),#0b1220}
+    .wrap{width:min(980px,100%);margin:auto;padding:28px 18px 56px}.top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:30px}
+    .brand{font-size:.8rem;letter-spacing:.18em;font-weight:800;color:#8fc8ff}.tag{font-size:.75rem;color:#9eb2d0;border:1px solid #2b4265;border-radius:99px;padding:7px 11px}
+    h1{font-size:clamp(2rem,7vw,3.4rem);letter-spacing:-.05em;margin:0 0 8px}.lead{color:#aebfd9;line-height:1.65;max-width:680px;margin:0 0 28px}
+    .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:18px}.panel{background:#111e32;border:1px solid #263d5f;border-radius:20px;padding:22px;box-shadow:0 18px 60px #0003}
+    h2{font-size:1.05rem;margin:0 0 18px}.field{display:grid;gap:8px;margin:15px 0}.field label{font-size:.85rem;color:#c7d7ef}
+    input{width:100%;border:1px solid #334d70;border-radius:11px;background:#0b1628;color:#f4f8ff;padding:13px 14px;font:inherit;outline:none}
+    input:focus{border-color:#70baff;box-shadow:0 0 0 3px #3989dc2b}small,.hint{color:#91a6c5;line-height:1.5}
+    .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}button{border:0;border-radius:11px;padding:12px 16px;font:700 .9rem inherit;cursor:pointer}
+    .primary{background:#4d9df0;color:#061426}.secondary{background:#203654;color:#d9eaff;border:1px solid #365477}.danger{background:transparent;color:#ffb6b6;border:1px solid #70414b}
+    button:disabled{opacity:.55;cursor:wait}.status{padding:13px;border-radius:12px;background:#0b1628;border:1px solid #2b4265;color:#b9cbe4;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+    .status.good{border-color:#286b57;color:#a9f1d3}.status.bad{border-color:#78434b;color:#ffc2c8}.status.warn{border-color:#806b3a;color:#ffe3a1}
+    .result{display:grid;gap:10px;margin-top:14px}.result a{color:#8fc8ff;overflow-wrap:anywhere}.checklist{padding-left:18px;color:#aebfd9;line-height:1.8}
+    footer{margin-top:22px;color:#7188aa;font-size:.8rem;line-height:1.6}.hidden{display:none}
+    @media(max-width:720px){.grid{grid-template-columns:1fr}.top{align-items:flex-start}.wrap{padding-top:20px}.panel{padding:18px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top"><div class="brand">GITHUB FACTORY</div><div class="tag">CONSOLE · BETA</div></header>
+    <h1>Centre de commande</h1>
+    <p class="lead">Crée un dépôt GitHub privé et demande à Netlify de le connecter automatiquement. Cette console ne conserve pas ta clé d'administration : elle reste uniquement dans le champ de cette page.</p>
+    <div class="grid">
+      <section class="panel">
+        <h2>01 — Authentification</h2>
+        <div class="field"><label for="adminKey">Clé d'administration Factory</label><input id="adminKey" type="password" autocomplete="new-password" spellcheck="false" placeholder="Colle ici ta clé Factory"></div>
+        <p class="hint">La clé est envoyée uniquement à l'endpoint HTTPS de ce projet. Ne la partage jamais dans un message ou une capture d'écran.</p>
+        <div class="actions"><button class="secondary" id="statusBtn" type="button">Vérifier la configuration</button><button class="danger" id="clearBtn" type="button">Effacer la clé</button></div>
+        <div id="statusBox" class="status" role="status" aria-live="polite" style="margin-top:14px">En attente de vérification. Aucun site ne sera créé par le bouton de vérification.</div>
+      </section>
+      <section class="panel">
+        <h2>02 — Nouveau site</h2>
+        <form id="createForm">
+          <div class="field"><label for="siteName">Nom du dépôt / site</label><input id="siteName" name="name" required minlength="1" maxlength="39" pattern="[a-z0-9](?:[a-z0-9-]{0,38})" placeholder="exemple-mon-site"></div>
+          <div class="field"><label for="siteDescription">Description</label><input id="siteDescription" name="description" maxlength="350" placeholder="Description du projet"></div>
+          <p class="hint">Les nouveaux dépôts sont privés par défaut. La console ne propose pas de création publique.</p>
+          <div class="actions"><button class="primary" id="createBtn" type="submit">Créer le dépôt + site Netlify</button></div>
+        </form>
+        <div id="createBox" class="status" role="status" aria-live="polite" style="margin-top:14px">Aucune création lancée.</div>
+        <div id="resultLinks" class="result hidden"></div>
+      </section>
+    </div>
+    <section class="panel" style="margin-top:18px">
+      <h2>Comment ça fonctionne</h2>
+      <ol class="checklist">
+        <li>La Factory vérifie la clé et la configuration serveur.</li>
+        <li>Elle crée un dépôt GitHub privé et ajoute une page de départ.</li>
+        <li>Elle demande à Netlify de connecter le dépôt dans l'équipe configurée.</li>
+        <li>Le premier déploiement démarre automatiquement si les autorisations sont correctes.</li>
+      </ol>
+      <p class="hint">La vérification de configuration contrôle la présence des variables, pas encore la validité réelle des autorisations GitHub et Netlify.</p>
+    </section>
+    <footer>GITHUB FACTORY · 0 € de dépenses visées · Les offres gratuites et leurs limites s'appliquent. N'ajoute jamais de jeton GitHub ou Netlify dans cette page : seule la clé d'administration Factory est demandée ici.</footer>
+  </div>
+<script>
+(() => {
+  const key = document.getElementById("adminKey");
+  const statusBox = document.getElementById("statusBox");
+  const createBox = document.getElementById("createBox");
+  const resultLinks = document.getElementById("resultLinks");
+  const statusBtn = document.getElementById("statusBtn");
+  const createBtn = document.getElementById("createBtn");
+  const endpoint = "/.netlify/functions/factory-create-site";
+  const authHeaders = () => ({ "content-type": "application/json", authorization: "Bearer " + key.value.trim() });
+  const show = (el, message, kind = "") => { el.textContent = message; el.className = "status" + (kind ? " " + kind : ""); };
+  async function post(body) {
+    if (!key.value.trim()) throw new Error("Entre d'abord ta clé d'administration Factory.");
+    const response = await fetch(endpoint, { method: "POST", headers: authHeaders(), body: JSON.stringify(body), cache: "no-store" });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const missing = Array.isArray(data.missing) ? "\nVariables manquantes : " + data.missing.join(", ") : "";
+      throw new Error((data.error || "La requête a échoué.") + missing + (data.detail ? "\nDétail : " + data.detail : ""));
+    }
+    return data;
+  }
+  statusBtn.addEventListener("click", async () => {
+    statusBtn.disabled = true; show(statusBox, "Vérification en cours…");
+    try {
+      const data = await post({ action: "status" });
+      const missing = data.missing || [];
+      show(statusBox, missing.length ? "Configuration incomplète.\nÀ ajouter dans Netlify : " + missing.join(", ") : "Les six variables sont présentes et leur format est accepté.\nLes permissions réelles restent à tester.", missing.length ? "warn" : "good");
+    } catch (error) { show(statusBox, error.message, "bad"); }
+    finally { statusBtn.disabled = false; }
+  });
+  document.getElementById("clearBtn").addEventListener("click", () => { key.value = ""; show(statusBox, "Clé effacée du champ."); });
+  document.getElementById("createForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const name = document.getElementById("siteName").value.trim().toLowerCase();
+    const description = document.getElementById("siteDescription").value.trim();
+    if (!/^[a-z0-9](?:[a-z0-9-]{0,38})$/.test(name)) { show(createBox, "Nom invalide : utilise 1 à 39 caractères, lettres minuscules, chiffres et tirets.", "bad"); return; }
+    if (!window.confirm("Créer le dépôt GitHub privé « " + name + " » et son projet Netlify ? Cette action crée réellement des ressources.")) return;
+    createBtn.disabled = true; resultLinks.classList.add("hidden"); show(createBox, "Création en cours… Ne ferme pas cette page.");
+    try {
+      const data = await post({ name, description, private: true });
+      show(createBox, data.message || "Création demandée.", "good");
+      resultLinks.replaceChildren();
+      for (const [label, href] of [["Ouvrir le dépôt GitHub", data.repository], ["Ouvrir le site Netlify", data.site]]) {
+        if (!href) continue;
+        const link = document.createElement("a"); link.href = href; link.target = "_blank"; link.rel = "noopener noreferrer"; link.textContent = label; resultLinks.append(link);
+      }
+      resultLinks.classList.remove("hidden");
+    } catch (error) { show(createBox, error.message, "bad"); }
+    finally { createBtn.disabled = false; }
+  });
+})();
+</script>
+</body>
+</html>
