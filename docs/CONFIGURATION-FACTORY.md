@@ -31,6 +31,8 @@ Après avoir ajouté les variables, envoyer une requête POST au même endpoint 
 
 Cette vérification renvoie uniquement l'état présent/manquant des variables et ne crée aucun dépôt ni projet. Elle ne vérifie pas encore que les jetons disposent réellement des autorisations nécessaires.
 
+L'endpoint est limité à 5 requêtes par minute et par adresse IP pour réduire les abus. Une limite dépassée renvoie une réponse HTTP 429.
+
 ## Appel de test
 
 Après déploiement de ce dépôt sur Netlify, envoyer une requête POST à :
